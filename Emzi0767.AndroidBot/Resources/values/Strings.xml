@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="Hello">Hello World, Click Me!</string>
+  <string name="ApplicationName">Android Discord Bot</string>
+
+  <string name="data_dialog_title">Data warning</string>
+  <string name="data_dialog_message">This device is connected to a metered network. This might incur additional costs. Are you sure you want to run the bot?</string>
+  <string name="data_dialog_yes">Yes</string>
+  <string name="data_dialog_no">No</string>
+
+  <string name="token_dialog_title">Bot\'s token</string>
+  <string name="token_dialog_message">Input the bot\'s token:</string>
+  <string name="token_dialog_confirm">Confirm</string>
+  <string name="token_dialog_cancel">Cancel</string>
+
+  <string name="botctl_on">Start bot</string>
+  <string name="botctl_off">Stop bot</string>
+
+  <string name="botstatus_on">Bot running</string>
+  <string name="botstatus_off">Bot stopped</string>
+
+  <string name="botrun_starting">Starting the bot...</string>
+  <string name="botrun_running">Bot running</string>
+  <string name="botrun_stopping">Stopping the bot...</string>
+  <string name="botrun_stopped">Bot stopped</string>
+  <string name="botrun_startup_exception">Bot failed to start: </string>
+
+  <string name="servicenotif_botrunning">Companion Cube is running</string>
+  <string name="servicenotif_botopen">Click here to open the control panel</string>
+
+  <string name="permission_fail">Required permissions were not granted, exiting.</string>
+</resources>

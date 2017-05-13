@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="6dp">
+    <TextView
+        android:id="@+id/logitem_text"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:height="8dp"
+        android:minHeight="8dp"
+        android:layout_margin="0dp"
+        android:textSize="6dp"
+        android:gravity="center_vertical"
+        android:typeface="monospace" />
+</LinearLayout>
