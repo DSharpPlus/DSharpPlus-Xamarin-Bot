@@ -18,6 +18,9 @@ using Android.Widget;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Exceptions;
+using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
+using DSharpPlus.Net.WebSocket;
 using AndroidPermission = Android.Content.PM.Permission;
 using Environment = Android.OS.Environment;
 
@@ -266,13 +269,11 @@ namespace Emzi0767.AndroidBot
                 cs.FlushFinalBlock();
             }
 
-            this.Discord = new DiscordClient(new DiscordConfig
+            this.Discord = new DiscordClient(new DiscordConfiguration
             {
                 AutoReconnect = true,
-                DiscordBranch = Branch.Stable,
-                GatewayVersion = 5,
                 LargeThreshold = 250,
-                LogLevel = LogLevel.Unnecessary,
+                LogLevel = LogLevel.Info,
                 ShardCount = 1,
                 ShardId = 0,
                 Token = token,
@@ -286,19 +287,19 @@ namespace Emzi0767.AndroidBot
                 EnableDefaultHelp = true,
                 EnableDms = true,
                 EnableMentionPrefix = true,
-                Prefix = "ccp:",
+                StringPrefix = "daddy:",
                 SelfBot = false
             });
 
             this.Discord.DebugLogger.LogMessageReceived += this.DebugLogger_LogMessageReceived;
-            this.Discord.ClientError += this.Discord_ClientError;
+            this.Discord.ClientErrored += this.Discord_ClientError;
             this.Discord.GuildAvailable += this.Discord_GuildAvailable;
             this.Discord.Ready += this.Discord_Ready;
 
             this.DiscordCommands.CommandExecuted += this.DiscordCommands_CommandExecuted;
             this.DiscordCommands.CommandErrored += this.DiscordCommands_CommandErrored;
 
-            this.Discord.SetSocketImplementation<WebSocket4NetClient>();
+            this.Discord.SetWebSocketClient<WebSocket4NetClient>();
             this.DiscordCommands.RegisterCommands<PortableCommands>();
 
             this.LogItems.Clear();
@@ -404,7 +405,7 @@ namespace Emzi0767.AndroidBot
             return Task.CompletedTask;
         }
 
-        private Task DiscordCommands_CommandExecuted(CommandExecutedEventArgs e)
+        private Task DiscordCommands_CommandExecuted(CommandExecutionEventArgs e)
         {
             this.Discord.DebugLogger.LogMessage(LogLevel.Debug, "CCPortable", string.Concat(e.Context.User.Username, "#", e.Context.User.Discriminator, " executed ", e.Command.QualifiedName, " in #", e.Context.Channel.Name), DateTime.Now);
             return Task.CompletedTask;
@@ -423,33 +424,15 @@ namespace Emzi0767.AndroidBot
             ms = ms.Length > 1000 ? ms.Substring(0, 1000) : ms;
             st = st.Length > 1000 ? st.Substring(0, 1000) : st;
 
-            var embed = new DiscordEmbed
+            var embed = new DiscordEmbedBuilder
             {
-                Color = 0xFF0000,
+                Color = new DiscordColor(0xFF0000),
                 Title = "An exception occured when executing a command",
                 Description = string.Concat("`", e.Exception.GetType(), "` occured when executing `", e.Command.QualifiedName, "`."),
-                Footer = new DiscordEmbedFooter
-                {
-                    IconUrl = Discord.Me.AvatarUrl,
-                    Text = Discord.Me.Username
-                },
-                Timestamp = DateTime.UtcNow,
-                Fields = new List<DiscordEmbedField>()
-                {
-                    new DiscordEmbedField
-                    {
-                        Name = "Message",
-                        Value = ms,
-                        Inline = false
-                    },
-                    new DiscordEmbedField
-                    {
-                        Name = "Stack trace",
-                        Value = string.Concat("```cs\n", st, "\n```"),
-                        Inline = false
-                    }
-                }
-            };
+                Timestamp = DateTime.UtcNow
+            }.WithFooter(Discord.CurrentUser.AvatarUrl, Discord.CurrentUser.Username)
+            .AddField("Message", ms, false)
+            .AddField("Stack trace", $"```cs\n{st}\n```", false);
 
             await e.Context.Channel.SendMessageAsync("\u200b", embed: embed);
         }
@@ -458,7 +441,7 @@ namespace Emzi0767.AndroidBot
         {
             try
             {
-                this.Discord.UpdateStatusAsync(string.Concat(Build.Manufacturer, " ", Build.Model, ", ", Build.CpuAbi)).GetAwaiter().GetResult();
+                this.Discord.UpdateStatusAsync(new DiscordGame($"{Build.Manufacturer} {Build.Model}, {Build.CpuAbi}")).GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
