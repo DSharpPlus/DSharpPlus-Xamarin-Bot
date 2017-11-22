@@ -19,7 +19,7 @@ using Environment = Android.OS.Environment;
 
 namespace Emzi0767.AndroidBot
 {
-    [Activity(Label = "Companion Cube Portable", MainLauncher = true, Icon = "@drawable/icon")]
+    [Activity(Label = "DSharpPlus Example Xamarin Bot", MainLauncher = true, Icon = "@drawable/icon")]
     public class MainActivity : Activity
     {
         private Button BotCtl { get; set; }
@@ -208,7 +208,7 @@ namespace Emzi0767.AndroidBot
                         {
                             InputType = InputTypes.ClassText | InputTypes.TextVariationPassword
                         };
-                        et.Hint = "Bot user's token";
+                        et.Hint = this.GetString(Resource.String.token_dialog_placeholder);
                         et.LayoutParameters = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MatchParent, ViewGroup.LayoutParams.WrapContent);
 
                         var fl = new FrameLayout(this);

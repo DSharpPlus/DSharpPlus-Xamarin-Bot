@@ -107,11 +107,8 @@ namespace Emzi0767.AndroidBot
 		public partial class String
 		{
 			
-			// aapt resource value: 0x7f040001
-			public const int ApplicationName = 2130968577;
-			
 			// aapt resource value: 0x7f040000
-			public const int Hello = 2130968576;
+			public const int ApplicationName = 2130968576;
 			
 			// aapt resource value: 0x7f04000b
 			public const int botctl_off = 2130968587;
@@ -140,17 +137,17 @@ namespace Emzi0767.AndroidBot
 			// aapt resource value: 0x7f04000c
 			public const int botstatus_on = 2130968588;
 			
-			// aapt resource value: 0x7f040003
-			public const int data_dialog_message = 2130968579;
-			
-			// aapt resource value: 0x7f040005
-			public const int data_dialog_no = 2130968581;
-			
 			// aapt resource value: 0x7f040002
-			public const int data_dialog_title = 2130968578;
+			public const int data_dialog_message = 2130968578;
 			
 			// aapt resource value: 0x7f040004
-			public const int data_dialog_yes = 2130968580;
+			public const int data_dialog_no = 2130968580;
+			
+			// aapt resource value: 0x7f040001
+			public const int data_dialog_title = 2130968577;
+			
+			// aapt resource value: 0x7f040003
+			public const int data_dialog_yes = 2130968579;
 			
 			// aapt resource value: 0x7f040015
 			public const int permission_fail = 2130968597;
@@ -161,17 +158,20 @@ namespace Emzi0767.AndroidBot
 			// aapt resource value: 0x7f040013
 			public const int servicenotif_botrunning = 2130968595;
 			
-			// aapt resource value: 0x7f040009
-			public const int token_dialog_cancel = 2130968585;
-			
 			// aapt resource value: 0x7f040008
-			public const int token_dialog_confirm = 2130968584;
+			public const int token_dialog_cancel = 2130968584;
 			
 			// aapt resource value: 0x7f040007
-			public const int token_dialog_message = 2130968583;
+			public const int token_dialog_confirm = 2130968583;
 			
 			// aapt resource value: 0x7f040006
-			public const int token_dialog_title = 2130968582;
+			public const int token_dialog_message = 2130968582;
+			
+			// aapt resource value: 0x7f040009
+			public const int token_dialog_placeholder = 2130968585;
+			
+			// aapt resource value: 0x7f040005
+			public const int token_dialog_title = 2130968581;
 			
 			static String()
 			{
