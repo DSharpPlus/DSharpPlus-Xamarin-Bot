@@ -12,19 +12,15 @@ using Android.OS;
 using Android.Provider;
 using Android.Runtime;
 using Android.Text;
-using Android.Util;
 using Android.Views;
 using Android.Widget;
-using DSharpPlus;
-using DSharpPlus.CommandsNext;
-using DSharpPlus.CommandsNext.Exceptions;
 using AndroidPermission = Android.Content.PM.Permission;
 using Environment = Android.OS.Environment;
 
 namespace Emzi0767.AndroidBot
 {
     [Activity(Label = "Companion Cube Portable", MainLauncher = true, Icon = "@drawable/icon")]
-    public class MainActivity : Activity, View.IOnClickListener
+    public class MainActivity : Activity
     {
         private Button BotCtl { get; set; }
         private TextView BotStatus { get; set; }
@@ -32,10 +28,8 @@ namespace Emzi0767.AndroidBot
 
         private List<string> LogItems { get; set; }
         private LogItemAdapter LogItemsAdapter { get; set; }
-
-        private DiscordClient Discord { get; set; }
-        private CommandsNextModule DiscordCommands { get; set; }
-        private Timer DiscordStatusTimer { get; set; }
+        
+        private DspXamarinBot Bot { get; set; }
 
         private const int PERMID_PERMISSION_REQUEST = 0;
         private const int PERMID_NOTIFICATION = 1;
@@ -103,7 +97,7 @@ namespace Emzi0767.AndroidBot
             this.LogItems = new List<string>();
             this.LogItemsAdapter = new LogItemAdapter(this.LogItems, (LayoutInflater)this.GetSystemService(Context.LayoutInflaterService));
             this.BotLog.Adapter = this.LogItemsAdapter;
-            this.BotCtl.SetOnClickListener(this);
+            this.BotCtl.Click += this.OnBotCtlClick;
         }
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, [GeneratedEnum] AndroidPermission[] grantResults)
@@ -135,15 +129,15 @@ namespace Emzi0767.AndroidBot
         public void OnClick(View v)
         {
             if (v.Id == Resource.Id.botctl)
-                this.OnBotCtlClick();
+                this.OnBotCtlClick(this, new EventArgs());
         }
 
-        private void OnBotCtlClick()
+        private void OnBotCtlClick(object sender, EventArgs e)
         {
             this.BotCtl.Enabled = false;
             
-            if (this.Discord == null)
-                this.InitTask = Task.Run(() => this.StartBot());
+            if (this.Bot == null)
+                this.InitTask = Task.Run(() => this.StartBot()).ContinueWith(t => this.Bot_LogMessage($"Failed to initialize the bot: {t.Exception}"), TaskContinuationOptions.OnlyOnFaulted);
             else
                 this.StopBot();
         }
@@ -266,40 +260,8 @@ namespace Emzi0767.AndroidBot
                 cs.FlushFinalBlock();
             }
 
-            this.Discord = new DiscordClient(new DiscordConfig
-            {
-                AutoReconnect = true,
-                DiscordBranch = Branch.Stable,
-                GatewayVersion = 5,
-                LargeThreshold = 250,
-                LogLevel = LogLevel.Unnecessary,
-                ShardCount = 1,
-                ShardId = 0,
-                Token = token,
-                TokenType = TokenType.Bot,
-                UseInternalLogHandler = true
-            });
-
-            this.DiscordCommands = this.Discord.UseCommandsNext(new CommandsNextConfiguration
-            {
-                CaseSensitive = true,
-                EnableDefaultHelp = true,
-                EnableDms = true,
-                EnableMentionPrefix = true,
-                Prefix = "ccp:",
-                SelfBot = false
-            });
-
-            this.Discord.DebugLogger.LogMessageReceived += this.DebugLogger_LogMessageReceived;
-            this.Discord.ClientError += this.Discord_ClientError;
-            this.Discord.GuildAvailable += this.Discord_GuildAvailable;
-            this.Discord.Ready += this.Discord_Ready;
-
-            this.DiscordCommands.CommandExecuted += this.DiscordCommands_CommandExecuted;
-            this.DiscordCommands.CommandErrored += this.DiscordCommands_CommandErrored;
-
-            this.Discord.SetSocketImplementation<WebSocket4NetClient>();
-            this.DiscordCommands.RegisterCommands<PortableCommands>();
+            this.Bot = new DspXamarinBot(token);
+            this.Bot.LogMessage += this.Bot_LogMessage;
 
             this.LogItems.Clear();
             this.RunOnUiThread(() => this.LogItemsAdapter.NotifyDataSetChanged());
@@ -312,7 +274,7 @@ namespace Emzi0767.AndroidBot
         {
             try
             {
-                await this.Discord.ConnectAsync();
+                await this.Bot.StartAsync();
 
                 this.RunOnUiThread(() =>
                 {
@@ -339,12 +301,9 @@ namespace Emzi0767.AndroidBot
         {
             this.BotTaskCancellationTokenSource.Cancel();
 
-            this.DiscordStatusTimer.Dispose();
-            await this.Discord.DisconnectAsync();
-            this.Discord = null;
-            this.DiscordCommands = null;
-            this.DiscordStatusTimer = null;
-
+            await this.Bot.StopAsync();
+            this.Bot = null;
+            
             this.RunOnUiThread(() =>
             {
                 this.NotificationManager.Cancel(PERMID_NOTIFICATION);
@@ -356,114 +315,20 @@ namespace Emzi0767.AndroidBot
             });
         }
 
-        private void DebugLogger_LogMessageReceived(object sender, DebugLogMessageEventArgs e)
+        private void Bot_LogMessage(string formattedMessage)
         {
             this.RunOnUiThread(() =>
             {
-                this.LogItemsAdapter.Add(this.FormatLogItem(e));
+                if (formattedMessage.Contains("\r\n"))
+                    formattedMessage.Replace("\r", "");
+
+                var msgs = formattedMessage.Split('\n');
+                foreach (var msg in msgs)
+                    this.LogItemsAdapter.Add(msg);
+
                 this.LogItemsAdapter.NotifyDataSetChanged();
                 this.BotLog.SmoothScrollToPosition(this.LogItemsAdapter.Count - 1);
             });
-        }
-
-        private string FormatLogItem(DebugLogMessageEventArgs e)
-        {
-            var sb = new StringBuilder();
-
-            var ls = e.Level.ToString();
-            ls = ls.Substring(0, Math.Min(ls.Length, 5));
-
-            var @as = e.Application;
-            @as = @as.Substring(0, Math.Min(@as.Length, 10));
-
-            sb.AppendFormat("[{0:yyyy-MM-dd HH:mm:ss}] ", e.Timestamp);
-            sb.AppendFormat("[{0}] ", ls.PadLeft(5, ' '));
-            sb.AppendFormat("[{0}] ", @as.PadLeft(10, ' '));
-            sb.AppendLine(e.Message);
-
-            return sb.ToString();
-        }
-
-        private Task Discord_ClientError(ClientErrorEventArgs e)
-        {
-            this.Discord.DebugLogger.LogMessage(LogLevel.Error, "CCPortable", string.Concat(e.Exception.GetType().ToString(), ": ", e.Exception.Message), DateTime.Now);
-            return Task.CompletedTask;
-        }
-
-        private Task Discord_GuildAvailable(GuildCreateEventArgs e)
-        {
-            this.Discord.DebugLogger.LogMessage(LogLevel.Info, "CCPortable", string.Concat("Guild available: ", e.Guild.Name), DateTime.Now);
-            return Task.CompletedTask;
-        }
-
-        private Task Discord_Ready(ReadyEventArgs e)
-        {
-            this.DiscordStatusTimer = new Timer(this.DiscordStatusTimerCallback, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
-
-            this.Discord.DebugLogger.LogMessage(LogLevel.Info, "CCPortable", "Ready", DateTime.Now);
-            return Task.CompletedTask;
-        }
-
-        private Task DiscordCommands_CommandExecuted(CommandExecutedEventArgs e)
-        {
-            this.Discord.DebugLogger.LogMessage(LogLevel.Debug, "CCPortable", string.Concat(e.Context.User.Username, "#", e.Context.User.Discriminator, " executed ", e.Command.QualifiedName, " in #", e.Context.Channel.Name), DateTime.Now);
-            return Task.CompletedTask;
-        }
-
-        private async Task DiscordCommands_CommandErrored(CommandErrorEventArgs e)
-        {
-            if (e.Exception is CommandNotFoundException)
-                return;
-
-            this.Discord.DebugLogger.LogMessage(LogLevel.Error, "CommandsNext", string.Concat(e.Exception.GetType(), ": ", e.Exception.Message), DateTime.Now);
-
-            var ms = e.Exception.Message;
-            var st = e.Exception.StackTrace;
-
-            ms = ms.Length > 1000 ? ms.Substring(0, 1000) : ms;
-            st = st.Length > 1000 ? st.Substring(0, 1000) : st;
-
-            var embed = new DiscordEmbed
-            {
-                Color = 0xFF0000,
-                Title = "An exception occured when executing a command",
-                Description = string.Concat("`", e.Exception.GetType(), "` occured when executing `", e.Command.QualifiedName, "`."),
-                Footer = new DiscordEmbedFooter
-                {
-                    IconUrl = Discord.Me.AvatarUrl,
-                    Text = Discord.Me.Username
-                },
-                Timestamp = DateTime.UtcNow,
-                Fields = new List<DiscordEmbedField>()
-                {
-                    new DiscordEmbedField
-                    {
-                        Name = "Message",
-                        Value = ms,
-                        Inline = false
-                    },
-                    new DiscordEmbedField
-                    {
-                        Name = "Stack trace",
-                        Value = string.Concat("```cs\n", st, "\n```"),
-                        Inline = false
-                    }
-                }
-            };
-
-            await e.Context.Channel.SendMessageAsync("\u200b", embed: embed);
-        }
-
-        private void DiscordStatusTimerCallback(object _)
-        {
-            try
-            {
-                this.Discord.UpdateStatusAsync(string.Concat(Build.Manufacturer, " ", Build.Model, ", ", Build.CpuAbi)).GetAwaiter().GetResult();
-            }
-            catch (Exception ex)
-            {
-                this.Discord.DebugLogger.LogMessage(LogLevel.Error, "Companion Cube", string.Concat("Failed to set status (", ex.GetType().ToString(), ": ", ex.Message, ")"), DateTime.Now);
-            }
         }
     }
 }
